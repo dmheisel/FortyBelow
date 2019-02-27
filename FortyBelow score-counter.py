@@ -1,12 +1,19 @@
 import random
 from random import shuffle
 
-#DONE --  set up card values
+#DONE -- set up card values
 #DONE -- determine card locations in hand
-#TODO -- determine sum, cancels
-#TODO -- determine 40 below scores
+#DONE -- determine sum, cancels
+#DONE -- determine 40 below scores
+#DONE -- figure out how to sum up card values with ints
+
 #TODO -- tracker for whole game - ten rounds
-#TODO -- figure out how to sum up card values
+#TODO -- figure out player input for a whole round
+#
+
+#TODO -- multiple players? computer opponent?  keep track of all scores/neighbor cards
+
+
 
 def text_deco(func):
     def wrapper(x):
@@ -15,8 +22,10 @@ def text_deco(func):
         print("---------------------")
     return wrapper
 
+
+
 class Card:
-    def __init__(self, value, hidden=None): #TODO add hidden function later
+    def __init__(self, value, hidden=None):
         self.value = value
         self.hidden = True
         self.face = 'X'        
@@ -24,30 +33,35 @@ class Card:
     def flip_card(self):
         self.hidden = False
         return self
-        
+    
+    def discard(self):
+        discard_pile.discard(self)
+    
+    #override repr function so when called returns either "X" when face down or card value if face-up    
     def __repr__(self):
         if self.hidden == True:
             return str(self.face)
         elif not self.hidden:
             return str(self.value)
     
-    def __add__(self, other): #### IS THIS NEEDED?  FIX
-        if self.hidden == True or other.hidden == True:
-            return ValueError
-        else:
-            return (int(self.value) + int(other.value))  
-
-    def __radr__(self, other): #### IS THIS NEEDED?  FIX
-        if other == 0:
-            return self
-        elif self.hidden == True or other.hidden == True:
-            return ValueError
+   #if integer value of card is needed, provides face value or 0 if card is not flipped (0 will not end up with screwy score valuations with an unknown card value)
+    def __int__(self):
+        if self.hidden == True:
+            return 0
         else: 
-            return self.__add__(other)
-
+            return int(self.value)
     
-    def discard(self):
-        discard_pile.discard(self)
+    #overrides to allow getting a total value of all cards in hand
+    def __add__(self, other): 
+        return int(self) + other
+    
+    def __radd__(self, other): 
+        return self.__add__(other)
+    
+    def __iadd__(self, other):
+        return other.__add__(self)
+    
+    
 
 class Deck:
     def __init__(self, pile_type):
@@ -82,13 +96,21 @@ class Deck:
         self.deck_list.pop()
         discard_pile.deck_list.append(discarded_card)
 
+#player actions:
+#DONE       draw hand at start of game
+#DONE       flip a card in play
+#DONE       draw a new card from the deck and determine its value
+#   update?        use new card to replace card in play or discard.
+#DONE       exchange a card in play with top card on discard pile
+#DONE       check their score(unknown card values return 0 for score)
+
+
 class Player:
     def __init__(self, name):
         self.name = name
         hand = []
         self.hand = hand
         
-    
     def draw_hand(self, deck_name):
         for card in list(deck_name.draw_card(6)):
             self.hand.append(card)
@@ -120,14 +142,50 @@ class Player:
         self.hand[index].discard()
         self.hand[index] = new_card
         return self.player_hand()
+    
+    
+    def tally_score(self):
+     #3 columns from 6 cards -- could increase card count for more columns to add new game options?  iterate through each column to check if pair matches and if so remove it.  If removing two in a row, add -40 ((use a counter to check for multiple matches in a row?))
+        score = 0
+        lst = self.hand
+        card_pairs = [lst[x:x+2] for x in range(0, len(lst), 2)] #slices list into a list of columns
+        counter = 0
+        for i in card_pairs: ## iterates through each pair of cards
+            if i[0] == i[1]:
+                counter +=1
+                if counter == 2:
+                    score -= 40
+                    counter = 0
+            else:
+                score += sum(i)
+                counter = 0
+        print(card_pairs)
+        print(f'Total Score: {score}')
+   
+    #function to return a list with cancelled cards removed, and return -40 to the score if needed
+def tally_score():
+     #3 columns from 6 cards -- could increase card count for more columns to add new game options?  iterate through each column to check if pair matches and if so remove it.  If removing two in a row, add -40 ((use a counter to check for multiple matches in a row?))
+    score = 0
+    column_list = [lst[int(x):int(x)+2] for x in range(0, len(lst), 2)] #slices list into a list of columns
+    counter = 0
+    for i in column_list:
+        if i[0] == i[1]:
+            counter +=1
+            if counter == 2:
+                score -= 40
+                counter = 0
+        else:
+            score = score + i[0]
+            score  = score+ i[1]
+            counter = 0
+    print(column_list)
+    print(f'Total Score: {score}')
+    
+#tally_score([-1,-10,3,1,3,3])
 
-    def current_tally(self):
-        value_list = [card for card in self.hand if card.hidden != True]
-        print(value_list)
-        tally = 0
-        for value in value_list:
-            tally += value
-        #print(tally)
+###########################
+##TESTING FUNCTIONS BELOW##
+###########################
 
 discard_pile = Deck('discard')
 play_deck = Deck('draw')
@@ -138,11 +196,13 @@ play_deck = Deck('draw')
 testplayer = Player('Test')
 
 testplayer.draw_hand(play_deck)
-testplayer.flip_card(2)
-testplayer.draw_next(play_deck)
+#testplayer.flip_card(2)
+#testplayer.draw_next(play_deck)
 #print(discard_pile.deck_list)
-testplayer.exchange_card(5, discard_pile)
-testplayer.current_tally()
+#testplayer.exchange_card(5, discard_pile)
+#testplayer.flip_card(4)
+#testplayer.flip_card(3)
+testplayer.tally_score()
        
 ## SAVE FOR LATER USE?
 
@@ -167,4 +227,3 @@ testplayer.current_tally()
         #    print('invalid input')
         #else:
         #    print('invalid input')
-            
