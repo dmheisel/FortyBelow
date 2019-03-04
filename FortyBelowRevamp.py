@@ -1,0 +1,381 @@
+import random
+
+#TODO - in table.round(): determine player order for each round.  
+#       first player should alternate each round, and order should be
+#       maintained for the last turn in the round.  Likely have to 
+#       create a player list that is shifted based on round number.
+
+def main():
+    table = Table(['David', 'Jessica'])
+    table.start_game()
+
+def banner_deco(func):
+    def wrapper(x, *y):
+        width = 72
+        stars = '*' * width
+        print(f'{stars}')
+        func(x, *y)
+        print(f'{stars}')
+    return wrapper
+
+def verified_input(prompt, type_=None, min_=None, max_=None, range_=None):
+    """
+    Function that verifies any user input meets the criteria required to proceed.
+    Throws an error and requests new input from user if invalid input is given.
+    """
+    if min_ is not None and max_ is not None and max_ < min_:
+        raise ValueError("min_ must be less than or equal to max_.")
+    while True:
+        ui = input(prompt)
+        if type_ is not None:
+            try:
+                ui = type_(ui)
+            except ValueError:
+                print("Input type must be {0}.".format(type_.__name__))
+                continue
+        if max_ is not None and ui > max_:
+            print("Input must be less than or equal to {0}.".format(max_))
+        elif min_ is not None and ui < min_:
+            print("Input must be greater than or equal to {0}.".format(min_))
+        elif range_ is not None and ui not in range_:
+            if isinstance(range_, range):
+                template = "Input must be between {0.start} and {0.stop}."
+                print(template.format(range_))
+            else:
+                template = "Input must be {0}."
+                if len(range_) == 1:
+                    print(template.format(*range_))
+                else:
+                    print(template.format(" or ".join((", ".join(map(str, range_[:-1])), str(range_[-1])))))
+        else:
+            return ui
+
+#################################################################
+#################################################################
+
+class Table:
+    def __init__(self, players):
+        self.players = [Player(name, Hand()) for name in players]
+        self.play_deck = Deck()
+        self.discard_pile = Deck(discard = True)
+        self.rounds = 0
+        self.scores = {player:0 for player in self.players}
+
+    @banner_deco
+    def declare_player(self, player, message):
+        print(f'{player}, {message}')
+        player.hand.show_hand()
+
+    def deal_hands(self):
+        """
+        Resets the decks and shuffles out 6 cards to each player, then
+        discards the top card from the deck into the discard pile.
+        """
+        self.play_deck.populate()
+        self.play_deck.shuffle()
+        self.discard_pile.deck.clear()
+
+        for player in self.players:
+            player.hand.cards.clear()
+            player.hand.add_cards(list(self.play_deck.draw_card(6)))
+        for card in self.play_deck.draw_card():
+            self.discard_pile.add_card(card.flip_card())
+    
+    def start_game(self):
+        """
+        Game setup shuffles deck, deals cards, starts the round,
+        and allows each player to flip two cards before play begins.
+        """
+        self.deal_hands()
+        self.rounds += 1
+        print(f'Starting Round {self.rounds}')
+        for player in self.players:
+            #self.declare_player(player, 'You may flip two cards before play starts.')
+            #card_1 = verified_input(
+            #    f"""{player}, you may flip two cards before play starts. Please choose the #position of the first card you wish to flip:
+            #    ~~ 1 ~~ 3 ~~ 5 ~~
+            #    ~~ 2 ~~ 4 ~~ 6 ~~
+            #    """
+            #, type_=int, min_=1, max_=6)
+            card_1 = random.randint(1, 6)
+            player.hand.cards[int(card_1)-1].flip_card()
+            #card_2 = verified_input(
+            #    f"""{player}, please choose the position of the second card you wish to flip."""
+            #, type_=int, min_=1, max_=6)
+            card_2 = random.randint(1, 6)
+            player.hand.cards[int(card_2)-1].flip_card()
+            self.declare_player(player, 'your cards have been flipped.  Your hand is now:')       
+        self.round()
+
+    def round(self):
+        """
+        Rounds repeat until a player flips all of their cards.
+        Once a player flips all their cards, every other player
+        draws one last card from the deck before scores are tallied.
+        """
+        players = [player for player in self.players]
+        #current_player = self.rounds % len(self.players) - 1        
+        while len(players) == len(self.players):
+            if len(players) != len(self.players):
+                break
+            for player in players:
+                self.declare_player(player, 'it is now your turn.  Here are your current cards:')
+                self.turn(player)
+                if all(not card.hidden for card in player.hand.cards):
+                    players.remove(player)
+                  
+                #if current_player == len(players)-1:
+                #    current_player = 0
+                #else:
+                #    current_player +=1
+        for player in players:
+            self.last_turn(player)                
+        #tabulate scores for all players after last turn of round
+        for player in self.players:
+            self.scores[player] += player.tally_score()
+            print(f'{player}, you earned {player.tally_score()} points this round!')
+            print(f'Your current score is {self.scores.get(player)}')
+
+        print(f'End of round {self.rounds}')
+        print(f'Current standings are: {self.scores}')
+        self.check_winner()
+
+    def turn(self, player):
+        """
+        Requests input from the player for their next action
+        and responds based on player input.  Follow up input for 
+        flipping a card asks for card position(column, row)
+        Follow up input for checking card in deck asks to discard or 
+        choose a card to replace
+        """
+        #act = verified_input(
+        #f"""{self.discard_pile.top_card} is the top card on the discard pile.
+        #Please select an action:
+        #1. Flip a card in your hand.
+        #2. Draw the next card in the deck.
+        #3. Draw from the discard pile.
+        #"""
+        #, type_=int, min_=0, max_=3)
+        act = random.randint(1, 3)
+        if int(act) == 1:
+            #act2 = verified_input(
+            #    f"""{player}, please choose a card position to flip:
+            #    ~~ 1 ~~ 3 ~~ 5 ~~
+            #    ~~ 2 ~~ 4 ~~ 6 ~~
+            #    """
+            #, type_=int, min_=1, max_=6)
+            act2 = random.randint(0, 6)
+            player.hand.cards[int(act2)-1].flip_card()
+            print(f"{player}'s hand is now:")
+            player.hand.show_hand()
+
+        if int(act) == 2:
+            top_card = list(self.play_deck.draw_card())[0]
+            #act2 = verified_input(
+            #    f"""You drew {top_card.flip_card()}. Do you want to keep this card?
+            #    Input '0' to discard or choose a position to swap:
+            #    ~~ 1 ~~ 3 ~~ 5 ~~
+            #    ~~ 2 ~~ 4 ~~ 6 ~~
+            #    """
+            #, type_=int, min_=0, max_=6,)
+            act2 = random.randint(0, 6)
+            if int(act2) == 0:
+                print(f'{player} discarded {top_card}')
+                self.discard_pile.add_card(top_card)
+
+            else:
+                player.hand.add_card(int(act2), top_card)
+                self.discard_pile.add_card(player.hand.remove_card(int(act2)))
+                print(f"{player}'s hand is now:")
+                player.hand.show_hand() 
+
+        if int(act) == 3:
+            #act2 = verified_input(
+            #   f"""You take {self.discard_pile.top_card} from the discard pile.
+            #    Please choose a card position to swap:
+            #    ~~ 1 ~~ 3 ~~ 5 ~~
+            #    ~~ 2 ~~ 4 ~~ 6 ~~
+            #    """
+            #, type_=int, min_=0, max_=6)
+            act2 = random.randint(1, 6)
+            player.hand.add_card(int(act2), self.discard_pile.top_card)
+            discarded_card = player.hand.remove_card(int(act2))
+            self.discard_pile.add_card(discarded_card)
+            print(f"{player}'s hand is now:")
+            player.hand.show_hand()
+
+    def last_turn(self, player):
+        """
+        Last turn is similar to a regular turn but you cannot draw from 
+        the discard pile.  Player can check top card of draw deck once 
+        and replace any card in hand, and any yet un-flipped cards are flipped.
+        Last turn automatically adds player's score to score tally.
+        """
+        self.declare_player(player, 'it is now the last turn. \nYou may draw one card from the deck.  Here are your current cards:')
+        top_card = list(self.play_deck.draw_card())[0]
+        #act = verified_input(
+        #f"""You drew {top_card.flip_card()} from the deck.  
+        #=======================================
+        #Input '0' to discard this card or 
+        #choose a position in your hand to swap.
+        #~~ 1 ~~ 3 ~~ 5 ~~
+        #~~ 2 ~~ 4 ~~ 6 ~~
+        #Any remaining face-down cards will be flipped.
+        #"""
+        #, type_=int, min_=0, max_=6)
+        act = random.randint(0, 6)
+        if int(act) == 0:
+            self.discard_pile.add_card(top_card)
+        else:
+            player.hand.add_card(int(act), self.discard_pile.top_card)
+            self.discard_pile.add_card(player.hand.remove_card(int(act)))
+        for card in player.hand.cards:
+            card.flip_card()
+               
+
+    def check_winner(self):
+        if self.rounds <= 10:
+            self.start_game()
+        elif self.rounds > 10:
+            winner = min(self.scores, key=self.scores.get)
+            print(f'The winner is {winner} with {self.scores.get(winner)} points!')
+
+class Card:
+    def __init__(self, value):
+        self.value = value
+        self.hidden = True
+        hidden = 'X'
+        self.face = hidden
+
+    def __repr__(self):       
+        if self.hidden ==  True:
+            return str(self.face)
+        else:
+            return str(self.value)
+    
+    def __int__(self):
+        """
+        if an integer value is needed (for counting up score) and the card 
+        is face down, returns 0 instead of the card's value as that won't
+        effect the score valuation with an unknown card value
+        """
+        if self.hidden == True:
+            return 0
+        else: 
+            return int(self.value)
+
+    def __add__(self, other): 
+        return int(self) + other
+    
+    def __radd__(self, other): 
+        return self.__add__(other)
+    
+    def __iadd__(self, other):
+        return other.__add__(self)
+           
+    def flip_card(self):
+        self.hidden = False
+        return self
+    
+class Deck:
+    def __init__(self, discard = False):
+        self.deck = []
+        self.name = "Deck"
+        self.discard = discard
+        self.top_card = None
+        if self.discard:
+            self.name = "Discard Pile"
+            
+    def populate(self):
+        """
+        Creates a deck of 100 cards. 96 cards: 
+        8 each valued -1 thru 10, 4 each valued -10
+        """
+        self.deck.clear
+        for n in range(-1, 10):
+            self.deck.extend([Card(n) for i in range(8)])
+        self.deck.extend([Card(-10) for i in range(4)])
+
+    def shuffle(self):
+        random.shuffle(self.deck)
+
+    def draw_card(self, amount = 1):
+        """
+        Yields the next card popped from the deck, and an amount can be specified to yield multiple cards in a row (e.g. for dealing a new hand)
+        """
+        for n in range(amount):
+            yield self.deck.pop()
+
+    def add_card(self, card):
+        if self.discard:
+            card.flip_card()
+            self.deck.append(card)
+            self.top_card = self.deck[-1]
+        else:
+            print("ERROR: This deck cannot accept cards")
+
+class Hand:
+    def __init__(self):
+        self.cards = []
+    
+    def add_card(self, position, card):
+        self.cards.insert(position, card)
+
+    def add_cards(self, cards):
+        self.cards.extend(cards)
+    
+    def remove_card(self, position):
+        self.cards[position-1].flip_card()
+        return self.cards.pop(position-1)
+
+    @banner_deco    
+    def show_hand(self):
+        """
+        prints out the current hand with layout of cards in 3 colums as follows:
+        ===============
+        ~ 1 -- 3 -- 5 ~
+        ~ 2 -- 4 -- 6 ~
+        ===============
+        """
+        print(f"~ {self.cards[0]} == {self.cards[2]} == {self.cards[4]} ~\n~ {self.cards[1]} == {self.cards[3]} == {self.cards[5]} ~")
+
+class Player:
+    def __init__(self, name, hand):
+        self.name = name
+        self.hand = hand
+        self.score = 0
+    
+    def __repr__(self):
+        return self.name
+
+    def flip(self, position):
+        self.hand.cards[position-1].flip_card()
+        return self.hand.show_hand()
+
+    def tally_score(self):
+        """
+        Splits cards into three pairs by column, adds card values if 
+        values are known and returns total score.
+        Last round initiates flipping all cards prior to calling tally.
+        """        
+        score = 0
+        card_pairs = [self.hand.cards[x:x+2] for x in range(0, len(self.hand.cards), 2)]
+        counter = 0
+        for i in card_pairs:
+            #checks for cancels and -40s, returns instead of card sum if found
+            #counter must hit 2 to get -40 (neighboring columns that cancel)
+            if i[0] == i[1]:
+                counter +=1
+                if counter == 2:
+                    score -= 40
+                    counter = 0
+            else:
+                score += sum(i)
+                counter = 0
+        self.score = score
+        return self.score
+
+##############################################################
+
+if __name__ == '__main__':
+    main()
