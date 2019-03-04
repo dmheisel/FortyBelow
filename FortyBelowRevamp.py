@@ -6,7 +6,7 @@ import random
 #       create a player list that is shifted based on round number.
 #TODO - update player actions to include check current scores
 #       including hand score and total accumulated score over game
-#TODO - throw input error if player attempts to flip a card that's
+#DONE - throw input error if player attempts to flip a card that's
 #       already been flipped over.  Should get to re-choose action.
 #DONE - Update scoring -- 40 belows now only occur when all four
 #       cards in neighboring columns match.
@@ -15,6 +15,11 @@ import random
 #       a random integer to simulate random input(to test that
 #       a complete game could be played without going through
 #       entire process)
+#DONE - check if cards are properly being flipped whenever action 
+#       is taken -- are cards X value being added to hand?
+#TODO - clean up rounds?  make code more readable for how rounds
+#       and turns are processed
+
 
 
 
@@ -68,7 +73,7 @@ def verified_input(prompt, type_=None, min_=None, max_=None, range_=None):
 
 class Table:
     """
-    All actions thta take place upon the playing table are in here,
+    All actions that take place upon the playing table are in here,
     such as dealing cards and players updating their hands.
     """
     
@@ -76,7 +81,7 @@ class Table:
         self.players = [Player(name, Hand()) for name in players]
         self.play_deck = Deck()
         self.discard_pile = Deck(discard = True)
-        self.rounds = 0
+        self.round_num = 1
         self.scores = {player:0 for player in self.players}
 
     @banner_deco
@@ -105,8 +110,7 @@ class Table:
         and allows each player to flip two cards before play begins.
         """
         self.deal_hands()
-        self.rounds += 1
-        print(f'Starting Round {self.rounds}')
+        print(f'Starting Round {self.round_num}')
         for player in self.players:
             #self.declare_player(player, 'You may flip two cards before play starts.')
             #card_1 = verified_input(
@@ -131,30 +135,27 @@ class Table:
         Once a player flips all their cards, every other player
         draws one last card from the deck before scores are tallied.
         """
-        players = [player for player in self.players]
-        #current_player = self.rounds % len(self.players) - 1        
-        while len(players) == len(self.players):
-            if len(players) != len(self.players):
+        current_player = self.round_num % len(self.players) - 1        
+        round_list = self.players[current_player:] + self.players[:current_player]
+        
+        while len(round_list) == len(self.players):
+            if len(round_list) != len(self.players):
                 break
-            for player in players:
+            for player in round_list:
                 self.declare_player(player, 'it is now your turn.  Here are your current cards:')
                 self.turn(player)
                 if all(not card.hidden for card in player.hand.cards):
-                    players.remove(player)
-                  
-                #if current_player == len(players)-1:
-                #    current_player = 0
-                #else:
-                #    current_player +=1
-        for player in players:
+                    round_list.remove(player)
+                    
+        for player in round_list:
             self.last_turn(player)                
-        #tabulate scores for all players after last turn of round
+        
         for player in self.players:
             self.scores[player] += player.tally_score()
             print(f'{player}, you earned {player.tally_score()} points this round!')
             print(f'Your current score is {self.scores.get(player)}')
 
-        print(f'End of round {self.rounds}')
+        print(f'End of round {self.round_num}')
         print(f'Current standings are: {self.scores}')
         self.check_winner()
 
@@ -183,30 +184,39 @@ class Table:
             #    """
             #, type_=int, min_=1, max_=6)
             act2 = random.randint(0, 6)
-            player.hand.cards[int(act2)-1].flip_card()
-            print(f"{player}'s hand is now:")
+            
+            flipped_card = player.hand.cards[int(act2)-1]
+            while not flipped_card.hidden:
+                #act2 = verified_input("That card is already flipped.  Please choose a different position")
+                print("That card is already flipped.  Please choose a different position")
+                act2 = random.randint(0,6)
+                flipped_card = player.hand.cards[int(act2)-1]
+            flipped_card.flip_card()
+            print(f"{player} flipped over {flipped_card} and their hand is now:")
             player.hand.show_hand()
 
         if int(act) == 2:
             top_card = list(self.play_deck.draw_card())[0]
+            top_card.flip_card()
             #act2 = verified_input(
-            #    f"""You drew {top_card.flip_card()}. Do you want to keep this card?
+            #    f"""You drew {top_card}. Do you want to keep this card?
             #    Input '0' to discard or choose a position to swap:
             #    ~~ 1 ~~ 3 ~~ 5 ~~
             #    ~~ 2 ~~ 4 ~~ 6 ~~
             #    """
             #, type_=int, min_=0, max_=6,)
+            print(f'{player} drew {top_card} from the deck.')
             act2 = random.randint(0, 6)
             if int(act2) == 0:
-                print(f'{player} discarded {top_card}')
+                print(f'{player} discarded {top_card}.  Their hand is unchanged.')
                 self.discard_pile.add_card(top_card)
 
             else:
                 player.hand.add_card(int(act2), top_card)
+                print(f"{player} added {top_card} into their hand.")
                 self.discard_pile.add_card(player.hand.remove_card(int(act2)))
                 print(f"{player}'s hand is now:")
                 player.hand.show_hand() 
-
         if int(act) == 3:
             #act2 = verified_input(
             #   f"""You take {self.discard_pile.top_card} from the discard pile.
@@ -216,9 +226,11 @@ class Table:
             #    """
             #, type_=int, min_=0, max_=6)
             act2 = random.randint(1, 6)
-            player.hand.add_card(int(act2), self.discard_pile.top_card)
-            discarded_card = player.hand.remove_card(int(act2))
-            self.discard_pile.add_card(discarded_card)
+            new_card = self.discard_pile.top_card
+            player.hand.add_card(int(act2), new_card)
+            discarded = player.hand.remove_card(int(act2))
+            print(f"{player} took {new_card} from the discard pile into their hand.")
+            self.discard_pile.add_card(discarded)
             print(f"{player}'s hand is now:")
             player.hand.show_hand()
 
@@ -231,6 +243,7 @@ class Table:
         """
         self.declare_player(player, 'it is now the last turn. \nYou may draw one card from the deck.  Here are your current cards:')
         top_card = list(self.play_deck.draw_card())[0]
+        top_card.flip_card()
         #act = verified_input(
         #f"""You drew {top_card.flip_card()} from the deck.  
         #=======================================
@@ -242,19 +255,26 @@ class Table:
         #"""
         #, type_=int, min_=0, max_=6)
         act = random.randint(0, 6)
+        print(f'{player} drew {top_card} from the deck.')
         if int(act) == 0:
+            print(f'{player} discarded {top_card}.  Their hand is unchanged.')
             self.discard_pile.add_card(top_card)
+            print
         else:
-            player.hand.add_card(int(act), self.discard_pile.top_card)
+            player.hand.add_card(int(act), top_card)
+            print(f"{player} added {top_card} into their hand.")
             self.discard_pile.add_card(player.hand.remove_card(int(act)))
         for card in player.hand.cards:
-            card.flip_card()
-               
+            if card.hidden:
+                card.flip_card()
+        print(f"Any remaining cards face-down have been flipped. {player}'s hand is now:")
+        player.hand.show_hand()   
 
     def check_winner(self):
-        if self.rounds <= 10:
+        if self.round_num < 10:
+            self.round_num += 1
             self.start_game()
-        elif self.rounds > 10:
+        elif self.round_num == 10:
             winner = min(self.scores, key=self.scores.get)
             print(f'The winner is {winner} with {self.scores.get(winner)} points!')
 
@@ -340,6 +360,7 @@ class Deck:
             card.flip_card()
             self.deck.append(card)
             self.top_card = self.deck[-1]
+            print(f'{self.top_card} has been added to the discard pile.')
         else:
             print("ERROR: This deck cannot accept cards")
 
@@ -393,7 +414,7 @@ class Player:
         self.hand.cards[position-1].flip_card()
         return self.hand.show_hand()
 
-    def tally_score():
+    def tally_score(self):
         """
         Splits cards into three pairs by column, adds card values if 
         values are known and returns total score.
@@ -404,8 +425,7 @@ class Player:
         """        
         score = 0
         card_pairs = [self.hand.cards[x:x+2] for x in range(0, len(self.hand.cards), 2)]
-        temp_40_checker = [] #used as temp list for checking sequential cancelled columns.  if a column is matched 
-                             #it is added to the list and if the next is a match it checks this list.  otherwise list clears.
+        temp_40_checker = []
         for i in card_pairs:
             if i[0] == i[-1]:
                 if temp_40_checker and temp_40_checker[-1] == i:
