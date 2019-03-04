@@ -4,6 +4,19 @@ import random
 #       first player should alternate each round, and order should be
 #       maintained for the last turn in the round.  Likely have to 
 #       create a player list that is shifted based on round number.
+#TODO - update player actions to include check current scores
+#       including hand score and total accumulated score over game
+#TODO - throw input error if player attempts to flip a card that's
+#       already been flipped over.  Should get to re-choose action.
+#DONE - Update scoring -- 40 belows now only occur when all four
+#       cards in neighboring columns match.
+#TODO - clean up player input.
+#       Code currently has player input commented out and gives 
+#       a random integer to simulate random input(to test that
+#       a complete game could be played without going through
+#       entire process)
+
+
 
 def main():
     table = Table(['David', 'Jessica'])
@@ -54,6 +67,11 @@ def verified_input(prompt, type_=None, min_=None, max_=None, range_=None):
 #################################################################
 
 class Table:
+    """
+    All actions thta take place upon the playing table are in here,
+    such as dealing cards and players updating their hands.
+    """
+    
     def __init__(self, players):
         self.players = [Player(name, Hand()) for name in players]
         self.play_deck = Deck()
@@ -240,6 +258,9 @@ class Table:
             winner = min(self.scores, key=self.scores.get)
             print(f'The winner is {winner} with {self.scores.get(winner)} points!')
 
+#################################################################
+#################################################################
+
 class Card:
     def __init__(self, value):
         self.value = value
@@ -276,8 +297,16 @@ class Card:
     def flip_card(self):
         self.hidden = False
         return self
+
+#################################################################
+#################################################################
     
 class Deck:
+    """
+    Decks can be filled, shuffled, drawn from, and added to(only in the
+    case of discard piles)
+    """
+    
     def __init__(self, discard = False):
         self.deck = []
         self.name = "Deck"
@@ -314,7 +343,16 @@ class Deck:
         else:
             print("ERROR: This deck cannot accept cards")
 
+#################################################################
+#################################################################
+
 class Hand:
+    """
+    Player's hand consists of six cards displayed in three columns of two.
+    Card positions are zero indexed and this is adjusted for by subtracting
+    one from input referencing a specific position.
+    """
+    
     def __init__(self):
         self.cards = []
     
@@ -339,6 +377,9 @@ class Hand:
         """
         print(f"~ {self.cards[0]} == {self.cards[2]} == {self.cards[4]} ~\n~ {self.cards[1]} == {self.cards[3]} == {self.cards[5]} ~")
 
+#################################################################
+#################################################################
+
 class Player:
     def __init__(self, name, hand):
         self.name = name
@@ -352,28 +393,31 @@ class Player:
         self.hand.cards[position-1].flip_card()
         return self.hand.show_hand()
 
-    def tally_score(self):
+    def tally_score():
         """
         Splits cards into three pairs by column, adds card values if 
         values are known and returns total score.
         Last round initiates flipping all cards prior to calling tally.
+        Scoring process is:
+        Sum of each column, EXCEPT columns that have matching cards are 0
+        Neighboring columns that contain all one card are -40
         """        
         score = 0
         card_pairs = [self.hand.cards[x:x+2] for x in range(0, len(self.hand.cards), 2)]
-        counter = 0
+        temp_40_checker = [] #used as temp list for checking sequential cancelled columns.  if a column is matched 
+                             #it is added to the list and if the next is a match it checks this list.  otherwise list clears.
         for i in card_pairs:
-            #checks for cancels and -40s, returns instead of card sum if found
-            #counter must hit 2 to get -40 (neighboring columns that cancel)
-            if i[0] == i[1]:
-                counter +=1
-                if counter == 2:
+            if i[0] == i[-1]:
+                if temp_40_checker and temp_40_checker[-1] == i:
                     score -= 40
-                    counter = 0
+                    temp_40_checker.clear()
+                else:
+                    temp_40_checker.append(i)
             else:
                 score += sum(i)
-                counter = 0
+                temp_40_checker.clear()
         self.score = score
-        return self.score
+        return self.score  
 
 ##############################################################
 
