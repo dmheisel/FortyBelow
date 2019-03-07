@@ -313,7 +313,10 @@ class Card:
     
     def __iadd__(self, other):
         return other.__add__(self)
-           
+    
+    def __eq__(self, other):
+      return int(self) == other
+    
     def flip_card(self):
         self.hidden = False
         return self
