@@ -1,6 +1,6 @@
 import random
 
-#TODO - in table.round(): determine player order for each round.  
+#DONE - in table.round(): determine player order for each round.  
 #       first player should alternate each round, and order should be
 #       maintained for the last turn in the round.  Likely have to 
 #       create a player list that is shifted based on round number.
@@ -40,8 +40,6 @@ def verified_input(prompt, type_=None, min_=None, max_=None, range_=None):
     """
     Function that verifies any user input meets the criteria required to proceed.
     Throws an error and requests new input from user if invalid input is given.
-    Found and modified slightly from stack overflow at: 
-    https://stackoverflow.com/questions/23294658/asking-the-user-for-input-until-they-give-a-valid-response
     """
     if min_ is not None and max_ is not None and max_ < min_:
         raise ValueError("min_ must be less than or equal to max_.")
@@ -141,17 +139,17 @@ class Table:
         draws one last card from the deck before scores are tallied.
         """
         current_player = self.round_num % len(self.players) - 1        
-        round_list = self.players[current_player:] + self.players[:current_player]
+        current_players = self.players[current_player:] + self.players[:current_player]
         
-        while len(round_list) == len(self.players):
-            if len(round_list) != len(self.players):
+        while len(current_players) == len(self.players):
+            if len(current_players) != len(self.players):
                 break
-            for player in round_list:
+            for player in current_players:
                 self.declare_player(player, 'it is now your turn.  Here are your current cards:')
                 self.turn(player)
                 if all(not card.hidden for card in player.hand.cards):
-                    round_list.remove(player)
-        for player in round_list:
+                    current_players.remove(player)
+        for player in current_players:
             self.last_turn(player)                
         self.scoring()
         
@@ -283,8 +281,6 @@ class Table:
                 card.flip_card()
         print(f"Any remaining cards face-down have been flipped. {player}'s hand is now:")
         player.hand.show_hand()   
-
-    
 
 #################################################################
 #################################################################
