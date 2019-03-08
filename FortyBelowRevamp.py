@@ -94,6 +94,10 @@ class Table:
         Resets the decks and shuffles out 6 cards to each player, then
         discards the top card from the deck into the discard pile.
         """
+        print('Collecting cards... \n'
+            'Shuffling deck... \n'
+            'Dealing hands... \n'
+            'Discarding the top card...')
         self.play_deck.populate()
         self.play_deck.shuffle()
         self.discard_pile.deck.clear()
@@ -112,7 +116,6 @@ class Table:
         self.deal_hands()
         print(f'Starting Round {self.round_num}')
         for player in self.players:
-            #self.declare_player(player, 'You may flip two cards before play starts.')
             #card_1 = verified_input(
             #    f"""{player}, you may flip two cards before play starts. Please choose the #position of the first card you wish to flip:
             #    ~~ 1 ~~ 3 ~~ 5 ~~
@@ -127,9 +130,9 @@ class Table:
             card_2 = random.randint(1, 6)
             player.hand.cards[int(card_2)-1].flip_card()
             self.declare_player(player, 'your cards have been flipped.  Your hand is now:')       
-        self.round()
+        self.round_()
 
-    def round(self):
+    def round_(self):
         """
         Rounds repeat until a player flips all of their cards.
         Once a player flips all their cards, every other player
@@ -146,19 +149,28 @@ class Table:
                 self.turn(player)
                 if all(not card.hidden for card in player.hand.cards):
                     round_list.remove(player)
-                    
         for player in round_list:
             self.last_turn(player)                
+        self.scoring()
         
+
+    def scoring(self):
         for player in self.players:
-            self.scores[player] += player.tally_score()
-            print(f'{player}, you earned {player.tally_score()} points this round!')
-            print(f'Your current score is {self.scores.get(player)}')
-
-        print(f'End of round {self.round_num}')
-        print(f'Current standings are: {self.scores}')
-        self.check_winner()
-
+                added_score = player.tally_score()
+                self.scores[player] += added_score
+                print(f'{player}, you earned {added_score} points this round!'
+                      f'Your current score is {self.scores.get(player)}')
+        if self.round_num <10:
+            print(f'End of round {self.round_num} \n'
+                  f'Current standings are: {self.scores}')
+            self.round_num += 1
+            self.start_game()
+        else:
+            winner = min(self.scores, key=self.scores.get)
+            print('The game has ended! \n'
+                f'Current standings are: {self.scores} \n'
+                f'The winner is {winner} with {self.scores.get(winner)} points!')
+        
     def turn(self, player):
         """
         Requests input from the player for their next action
@@ -270,13 +282,7 @@ class Table:
         print(f"Any remaining cards face-down have been flipped. {player}'s hand is now:")
         player.hand.show_hand()   
 
-    def check_winner(self):
-        if self.round_num < 10:
-            self.round_num += 1
-            self.start_game()
-        elif self.round_num == 10:
-            winner = min(self.scores, key=self.scores.get)
-            print(f'The winner is {winner} with {self.scores.get(winner)} points!')
+    
 
 #################################################################
 #################################################################
@@ -395,11 +401,11 @@ class Hand:
         """
         prints out the current hand with layout of cards in 3 colums as follows:
         ===============
-        ~ 1 -- 3 -- 5 ~
-        ~ 2 -- 4 -- 6 ~
+        ~ 1 -- 2 -- 3 ~
+        ~ 4 -- 5 -- 6 ~
         ===============
         """
-        print(f"~ {self.cards[0]} == {self.cards[2]} == {self.cards[4]} ~\n~ {self.cards[1]} == {self.cards[3]} == {self.cards[5]} ~")
+        print(f"~ {self.cards[0]} == {self.cards[1]} == {self.cards[2]} ~\n~ {self.cards[3]} == {self.cards[4]} == {self.cards[5]} ~")
 
 #################################################################
 #################################################################
@@ -427,7 +433,8 @@ class Player:
         Neighboring columns that contain all one card are -40
         """        
         score = 0
-        card_pairs = [self.hand.cards[x:x+2] for x in range(0, len(self.hand.cards), 2)]
+        y = len(self.hand.cards)//2
+        card_pairs = [[self.hand.cards[x], self.hand.cards[x+y]] for x in range(0, y)]
         temp_40_checker = []
         for i in card_pairs:
             if i[0] == i[-1]:
