@@ -40,6 +40,8 @@ def verified_input(prompt, type_=None, min_=None, max_=None, range_=None):
     """
     Function that verifies any user input meets the criteria required to proceed.
     Throws an error and requests new input from user if invalid input is given.
+    Found and modified slightly from stack overflow at: 
+    https://stackoverflow.com/questions/23294658/asking-the-user-for-input-until-they-give-a-valid-response
     """
     if min_ is not None and max_ is not None and max_ < min_:
         raise ValueError("min_ must be less than or equal to max_.")
