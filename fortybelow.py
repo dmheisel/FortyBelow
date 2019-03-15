@@ -9,7 +9,7 @@ def main():
 
 def banner_deco(func):
     def wrapper(x, *y):
-        width = 72
+        width = 50
         stars = '*' * width
         print(f'{stars}')
         func(x, *y)
@@ -224,6 +224,9 @@ class Hand:
     def __init__(self):
         self.cards = []
     
+    def __repr__(self):
+        return self.cards
+
     def add_card(self, position, card):
         self.cards.insert(position, card)
 
