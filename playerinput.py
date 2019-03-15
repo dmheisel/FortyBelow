@@ -1,7 +1,3 @@
-#import FortyBelow as fb
-#from FortyBelow import Card, Deck, Hand, Player, Table
-#import fortybelow as fb
-
 """
 File to handle all player input options
 Possible player actions:
@@ -19,10 +15,10 @@ check_score = "Check the scoresheet and this hand's current score."
 
 choose_position = (
                     'Please select a position in your hand from the chart below.\n'
-                    '===============================================================\n'
+                    '==================================\n'
                     '~~ 1 ~~ 2 ~~ 3 ~~\n'
                     '~~ 4 ~~ 5 ~~ 6 ~~\n'
-                    '================================================================\n'
+                    '==================================\n'
                     )
 
 def vinput(prompt, type_=None, min_=None, max_=None, range_=None):
@@ -125,7 +121,7 @@ def turn_output(player, self, set_up = False, last_turn = False):
         
             else:
                 flipped_card.flip_card()
-                print(f'{player} flipped over a {flipped_card}.\n')
+                print(f'{player} flipped over a {flipped_card}.')
 
         print(f"{player}'s' hand is now:")
         player.hand.show_hand()
