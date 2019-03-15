@@ -53,7 +53,7 @@ def vinput(prompt, type_=None, min_=None, max_=None, range_=None):
         else:
             return ui
 
-def turn_input(player, self, set_up = False, last_turn = False):
+def turn_input(self, player, set_up = False, last_turn = False):
     """
     Defines list of options for the player based on current turn:
     Game start only allows card flips, last turn doesn't allow 
@@ -67,7 +67,7 @@ def turn_input(player, self, set_up = False, last_turn = False):
             f'{player}, before play begins, each player flips two cards.\n'
             +f'{choose_position}', type_ = int, range_ = range(1,7)
             )
-        position_2 =vinput('Please choose your second card to flip.',
+        position_2 =vinput('Please choose your second card to flip.\n',
          type_ = int, range_ = range(1,7))
         return action, [position, position_2]
 
@@ -105,9 +105,9 @@ def turn_input(player, self, set_up = False, last_turn = False):
             print(f'Your current known hand is worth {player.tally_score()}\n'
                   f'The current scores are {self.scores}')
             
-def turn_output(player, self, set_up = False, last_turn = False):
+def turn_output(self, player, set_up = False, last_turn = False):
 
-    action, position = turn_input(player, self, set_up, last_turn)
+    action, position = turn_input(self, player, set_up, last_turn)
 
     if action == flip:
         for n in position: 
