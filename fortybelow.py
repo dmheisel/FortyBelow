@@ -68,7 +68,7 @@ class Table:
         
         if self.round_num == 1:
             for player in self.players:
-                pinput.turn_output(player, self, set_up = True)           
+                pinput.turn_output(self, player, set_up = True)           
         
         self.round_()
 
@@ -115,11 +115,11 @@ class Table:
         'it is now your turn.\n'
         +f'the top of the discard pile is {self.discard_pile.top_card}\n'
         +'here are your current cards:')
-        pinput.turn_output(player, self)
+        pinput.turn_output(self, player)
 
     def last_turn(self, player):
         self.declare_player(player, 'it is now the last turn. \nYou may draw one final card from the deck.  Here are your current cards:')
-        pinput.turn_output(player, self, last_turn=True)
+        pinput.turn_output(self, player, last_turn=True)
 
 #################################################################
 #################################################################
