@@ -70,7 +70,7 @@ def get_card_position():
 
 @input_validator(acceptable_chars = ['y', 'n'])
 def keep_or_discard(card):
-    return input(f"You drew a {card}. \nDo you wish to keep it?\nInput 'y' for Yes, 'n' for No")
+    return input(f"You drew a {card}. \nDo you wish to keep it?\nInput 'y' for Yes, 'n' for No\n")
 
 def starting_two_flips(player):
     print(f'{player}, flip your first card.\n')
@@ -91,35 +91,33 @@ def turn(self, player, is_last =  False):
     else:
         action = action_key[regular_input(self, player)]
 
-    while True:
-        if action == flip:
-            pos = get_card_position()
-            player.hand.cards[pos].flip()
-            player.hand.show()
-            break
+    if action == flip:
+        pos = get_card_position()-1
+        player.hand.cards[pos].flip()
+        player.hand.show()
         
-        if action == draw:
-            drawn_card = [card.flip() for card in self.deck.draw()][0]
-            follow_up = keep_or_discard(drawn_card)
-            if follow_up.lower() == 'n': 
-                self.discard_pile.discard(drawn_card)
-            else:
-                pos = get_card_position()
-                player.hand.add_card(pos, drawn_card)
-                self.discard_pile.discard(player.hand.remove_card(pos))
-                print(
-                    f"{player} added {drawn_card} into their hand.\n"
-                    "Their hand is now:\n"
-                )
-                player.hand.show()
-                break
-        if action == take_discard:
-            new_card = list(self.discard_pile.draw())[0]
+        
+    if action == draw:
+        drawn_card = [card.flip() for card in self.deck.draw()][0]
+        follow_up = keep_or_discard(drawn_card)
+        if follow_up.lower() == 'n': 
+            self.discard_pile.discard(drawn_card)
+        else:
             pos = get_card_position()
-            player.hand.add_card(pos, new_card)
-            old_card = player.hand.remove_card(pos)
-            print(f"{player} took a {new_card} from the discard pile into their hand.")
-            self.discard_pile.discard(old_card)
-            print(f"{player}'s hand is now:")
+            player.hand.add_card(pos, drawn_card)
+            self.discard_pile.discard(player.hand.remove_card(pos))
+            print(
+                f"{player} added {drawn_card} into their hand.\n"
+                "Their hand is now:\n"
+                )
             player.hand.show()
-            break
+                
+    if action == take_discard:
+        new_card = list(self.discard_pile.draw())[0]
+        pos = get_card_position()
+        player.hand.add_card(pos, new_card)
+        old_card = player.hand.remove_card(pos)
+        print(f"{player} took a {new_card} from the discard pile into their hand.")
+        self.discard_pile.discard(old_card)
+        print(f"{player}'s hand is now:")
+        player.hand.show()
