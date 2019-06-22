@@ -1,5 +1,8 @@
 # FortyBelow
 
+Currently terminal only - python code for game listed below.
+
+
 OFFICIAL RULES
 (pulled form fortybelowthegame.com)
 
